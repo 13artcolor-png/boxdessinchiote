@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>BoxDessinChiote</title>
+  <meta name="theme-color" content="#1d1d1f">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>BoxDessinChiote</h1>
+    <nav>
+      <button class="onglet actif" data-onglet="bibliotheque">Motifs</button>
+      <button class="onglet" data-onglet="montage">Montage</button>
+      <button class="onglet" data-onglet="reglages">Reglages</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Bibliotheque de motifs -->
+    <section id="bibliotheque" class="panneau actif">
+      <div class="barre">
+        <label class="bouton principal">
+          Ajouter des motifs
+          <input type="file" id="fichiers" accept="image/*" multiple hidden>
+        </label>
+        <button id="tout-utiliser">Tout utiliser</button>
+        <button id="rien-utiliser">Ne rien utiliser</button>
+      </div>
+      <p id="infos-biblio" class="info"></p>
+      <div id="progression-import" class="progression" hidden></div>
+      <div id="grille" class="grille"></div>
+      <div class="barre bas">
+        <button id="supprimer-inutilises" class="danger">Supprimer les motifs non utilises</button>
+      </div>
+    </section>
+
+    <!-- Montage et impression -->
+    <section id="montage" class="panneau">
+      <div class="barre">
+        <button id="calculer" class="principal">Calculer le montage</button>
+        <button id="creer-pdf" disabled>Creer le PDF</button>
+      </div>
+      <p id="resume" class="info"></p>
+      <div id="alertes"></div>
+      <div id="progression-pdf" class="progression" hidden></div>
+      <div id="sortie-pdf" class="barre" hidden>
+        <button id="partager" class="principal">Imprimer / Partager</button>
+        <a id="telecharger" class="bouton" download="montage-A3.pdf">Telecharger le PDF</a>
+      </div>
+      <div id="apercus" class="apercus"></div>
+    </section>
+
+    <!-- Reglages (sauvegarde automatique) -->
+    <section id="reglages" class="panneau">
+      <h2>Taille par defaut des motifs</h2>
+      <p class="info">Mesuree sur le petit cote du motif.</p>
+      <label>Petit cote mini (cm) <input type="number" id="r-min" step="0.5" min="1"></label>
+      <label>Petit cote maxi (cm) <input type="number" id="r-max" step="0.5" min="1"></label>
+
+      <h2>Page A3</h2>
+      <label>Marge autour de la page (mm) <input type="number" id="r-marge" step="1" min="0"></label>
+      <label>Espace entre les motifs (mm) <input type="number" id="r-ecart" step="1" min="0"></label>
+      <label class="case"><input type="checkbox" id="r-rotation"> Autoriser la rotation (90 degres)</label>
+      <label class="case"><input type="checkbox" id="r-traits"> Imprimer les traits de coupe</label>
+      <label>Qualite d'impression (points par pouce)
+        <select id="r-dpi">
+          <option value="150">150 - fichier leger</option>
+          <option value="200">200 - recommande</option>
+          <option value="300">300 - maximum</option>
+        </select>
+      </label>
+      <p class="info" id="etat-sauvegarde"></p>
+    </section>
+  </main>
+
+  <script src="js/packer.js"></script>
+  <script src="js/decor.js"></script>
+  <script src="js/pdfwriter.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
