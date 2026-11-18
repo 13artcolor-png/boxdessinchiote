@@ -128,7 +128,41 @@
     return { pages, unplaced };
   }
 
-  const api = { packer, plageHauteur };
+  /*
+   * Mode "nombre de motifs par page" : on ignore les tailles mini/maxi.
+   * Les exemplaires sont pris par paquets de N (dans l'ordre recu), et pour chaque
+   * paquet on cherche la plus grande taille qui fait tout tenir sur UNE page.
+   * Recherche par dichotomie : on essaie une taille, si ca tient on grossit,
+   * sinon on reduit, en coupant l'intervalle en deux a chaque essai.
+   * SOUPLESSE : dans une page, le petit cote peut varier de 1 a 1.5 fois la taille
+   * de base, pour que les rangees puissent se justifier (remplir la largeur).
+   */
+  const SOUPLESSE = 1.5;
+  const TAILLE_MINI_MM = 10; // en dessous, ca n'a plus de sens de decouper
+
+  function packerParNombre(items, opts, parPage) {
+    const n = Math.max(1, Math.floor(parPage));
+    const pages = [], unplaced = [];
+    for (let i = 0; i < items.length; i += n) {
+      const paquet = items.slice(i, i + n);
+      const essai = (s) => packer(paquet.map((it) => ({ ...it, minMm: s, maxMm: s * SOUPLESSE })), opts);
+      const tient = (r) => r.pages.length === 1 && r.unplaced.length === 0;
+      let bas = TAILLE_MINI_MM, haut = opts.pageW, meilleur = null;
+      for (let k = 0; k < 30; k++) {
+        const s = (bas + haut) / 2;
+        const r = essai(s);
+        if (tient(r)) { meilleur = r; bas = s; } else haut = s;
+      }
+      if (!meilleur) {
+        // Meme a 1 cm le paquet ne tient pas sur une page : on le repartit normalement
+        const r = essai(TAILLE_MINI_MM);
+        pages.push(...r.pages); unplaced.push(...r.unplaced);
+      } else pages.push(meilleur.pages[0]);
+    }
+    return { pages, unplaced };
+  }
+
+  const api = { packer, packerParNombre, plageHauteur };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Packer = api;
 })(this);

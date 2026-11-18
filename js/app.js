@@ -7,7 +7,10 @@
   const $ = (id) => document.getElementById(id);
   const A3 = { w: 297, h: 420 };
   const DPI_MINI_CONSEILLE = 150; // en dessous, l'image risque d'etre floue
-  const DEFAUTS = { minCm: 6, maxCm: 10, margeMm: 5, ecartMm: 4, rotation: true, traits: true, dpi: 200 };
+  const DEFAUTS = {
+    minCm: 6, maxCm: 10, margeMm: 5, ecartMm: 4, rotation: true, traits: true, dpi: 200,
+    repetitions: 1, miroir: 0, mode: 'taille', parPage: 6,
+  };
 
   let reglages = { ...DEFAUTS };
   let motifs = [];            // [{ id, nom, taille, blob, thumb, w, h, actif, exemplaires }]
@@ -25,21 +28,34 @@
   const champs = {
     minCm: ['r-min', 'nombre'], maxCm: ['r-max', 'nombre'], margeMm: ['r-marge', 'nombre'],
     ecartMm: ['r-ecart', 'nombre'], rotation: ['r-rotation', 'case'], traits: ['r-traits', 'case'], dpi: ['r-dpi', 'nombre'],
+    repetitions: ['r-repet', 'nombre'], miroir: ['r-miroir', 'nombre'], mode: ['r-mode', 'texte'], parPage: ['r-parpage', 'nombre'],
   };
+  // Reglages qui changent le texte affiche sur les cartes de motifs
+  const CLES_CARTES = ['minCm', 'maxCm', 'repetitions', 'miroir', 'mode'];
+
+  // Montre seulement les reglages utiles au mode de rangement choisi
+  function majVisibiliteMode() {
+    const parNombre = reglages.mode === 'nombre';
+    $('bloc-parpage').hidden = !parNombre;
+    $('bloc-tailles').hidden = parNombre;
+  }
   function afficherReglages() {
     for (const [cle, [id, type]] of Object.entries(champs)) {
       if (type === 'case') $(id).checked = reglages[cle]; else $(id).value = reglages[cle];
     }
+    majVisibiliteMode();
   }
   for (const [cle, [id, type]] of Object.entries(champs)) {
     $(id).addEventListener('change', async () => {
-      const v = type === 'case' ? $(id).checked : Number($(id).value);
-      if (type !== 'case' && !(v >= 0)) { $('etat-sauvegarde').textContent = 'Valeur invalide, non enregistree.'; return; }
+      const v = type === 'case' ? $(id).checked : type === 'texte' ? $(id).value : Number($(id).value);
+      if (type === 'nombre' && !(v >= 0)) { $('etat-sauvegarde').textContent = 'Valeur invalide, non enregistree.'; return; }
+      if (cle === 'parPage' && !(v >= 1)) { $('etat-sauvegarde').textContent = 'Il faut au moins 1 motif par page.'; return; }
       reglages[cle] = v;
       await Db.ecrireReglages(reglages);
       $('etat-sauvegarde').textContent = 'Enregistre.';
+      majVisibiliteMode();
       invaliderMontage();
-      if (cle === 'minCm' || cle === 'maxCm') rafraichirGrille();
+      if (CLES_CARTES.includes(cle)) rafraichirGrille();
     });
   }
 
@@ -48,7 +64,8 @@
     if (!urlsVignettes.has(m.id)) urlsVignettes.set(m.id, URL.createObjectURL(m.thumb));
     return urlsVignettes.get(m.id);
   }
-  const exemplairesDe = (m) => m.exemplaires || [{ qte: 1, minCm: reglages.minCm, maxCm: reglages.maxCm }];
+  // Sans personnalisation : le nombre de repetitions choisi dans les reglages
+  const exemplairesDe = (m) => m.exemplaires || [{ qte: reglages.repetitions, minCm: reglages.minCm, maxCm: reglages.maxCm }];
 
   // Resolution reelle a la taille maxi : signale les images trop petites
   function dpiAuMaxi(m, maxCm) {
@@ -72,7 +89,9 @@
 
     const liste = c.querySelector('.liste-ex');
     if (!m.exemplaires) {
-      liste.innerHTML = `<div class="info">1 fois, ${reglages.minCm} a ${reglages.maxCm} cm</div>`;
+      const taille = reglages.mode === 'nombre' ? 'taille auto' : `${reglages.minCm} a ${reglages.maxCm} cm`;
+      const miroir = reglages.repetitions > 1 && reglages.miroir ? ', 2e en miroir' : '';
+      liste.innerHTML = `<div class="info">${reglages.repetitions} fois${miroir}, ${taille}</div>`;
     } else {
       m.exemplaires.forEach((e, i) => {
         const ligne = document.createElement('div');
@@ -103,7 +122,7 @@
       await sauver(m);
     });
     c.querySelector('.ajout-ex').addEventListener('click', async () => {
-      if (!m.exemplaires) m.exemplaires = [{ qte: 1, minCm: reglages.minCm, maxCm: reglages.maxCm }];
+      if (!m.exemplaires) m.exemplaires = [{ qte: reglages.repetitions, minCm: reglages.minCm, maxCm: reglages.maxCm }];
       else m.exemplaires.push({ qte: 1, minCm: reglages.minCm, maxCm: reglages.maxCm });
       await sauver(m, true);
     });
@@ -229,18 +248,23 @@
 
   $('calculer').addEventListener('click', async () => {
     const items = [], alertes = [];
+    const parNombre = reglages.mode === 'nombre';
     for (const m of motifs.filter((x) => x.actif)) {
+      let rang = 0; // numero de l'exemplaire pour ce motif : 0 = 1er, 1 = 2e...
       exemplairesDe(m).forEach((e, k) => {
-        if (e.minCm > e.maxCm) { alertes.push(`Un motif a un mini (${e.minCm} cm) plus grand que son maxi (${e.maxCm} cm) : ignore.`); return; }
-        for (let q = 0; q < e.qte; q++) {
-          items.push({ id: `${m.id}#${k}#${q}`, motif: m, aspect: m.w / m.h, minMm: e.minCm * 10, maxMm: e.maxCm * 10 });
+        if (!parNombre && e.minCm > e.maxCm) { alertes.push(`Un motif a un mini (${e.minCm} cm) plus grand que son maxi (${e.maxCm} cm) : ignore.`); return; }
+        for (let q = 0; q < e.qte; q++, rang++) {
+          items.push({
+            id: `${m.id}#${k}#${q}`, motif: m, aspect: m.w / m.h, minMm: e.minCm * 10, maxMm: e.maxCm * 10,
+            miroir: Boolean(reglages.miroir) && rang % 2 === 1, // un exemplaire sur deux en miroir
+          });
         }
       });
     }
     if (items.length === 0) { $('resume').textContent = 'Aucun motif a placer : cochez "Utiliser" sur au moins un motif.'; return; }
 
     const opts = optionsPage();
-    const res = Packer.packer(items, opts);
+    const res = parNombre ? Packer.packerParNombre(items, opts, reglages.parPage) : Packer.packer(items, opts);
     montage = { ...res, opts };
 
     // Controle qualite : resolution effective de chaque exemplaire place
@@ -268,13 +292,16 @@
     return cacheVignettes.get(m.id);
   }
 
-  // Dessine une image dans un rectangle, tournee de 90 degres (sens horaire) si besoin
-  function dessinerImage(ctx, img, x, y, w, h, tourne) {
-    if (!tourne) { ctx.drawImage(img, x, y, w, h); return; }
+  // Dessine une image dans un rectangle, tournee de 90 degres (sens horaire) et/ou
+  // en miroir si besoin. Le miroir se fait dans le repere de l'image elle-meme :
+  // une fois decoupe et remis droit, le motif est bien inverse gauche-droite.
+  function dessinerImage(ctx, img, x, y, w, h, tourne, miroir) {
     ctx.save();
-    ctx.translate(x + w, y);
-    ctx.rotate(Math.PI / 2);
-    ctx.drawImage(img, 0, 0, h, w);
+    let dw = w, dh = h;
+    if (tourne) { ctx.translate(x + w, y); ctx.rotate(Math.PI / 2); dw = h; dh = w; }
+    else ctx.translate(x, y);
+    if (miroir) { ctx.translate(dw, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(img, 0, 0, dw, dh);
     ctx.restore();
   }
 
@@ -296,7 +323,7 @@
         ctx.beginPath(); ctx.moveTo(l.x1 * k, l.y1 * k); ctx.lineTo(l.x2 * k, l.y2 * k); ctx.stroke();
       }
       for (const p of page.placements) {
-        dessinerImage(ctx, await bitmapVignette(p.item.motif), p.x * k, p.y * k, p.w * k, p.h * k, p.rotated);
+        dessinerImage(ctx, await bitmapVignette(p.item.motif), p.x * k, p.y * k, p.w * k, p.h * k, p.rotated, p.item.miroir);
       }
       const fig = document.createElement('figure');
       fig.appendChild(cv);
@@ -321,7 +348,7 @@
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, pxW, pxH);
     ctx.imageSmoothingQuality = 'high';
-    dessinerImage(ctx, bmp, 0, 0, pxW, pxH, p.rotated);
+    dessinerImage(ctx, bmp, 0, 0, pxW, pxH, p.rotated, p.item.miroir);
     bmp.close();
     const blob = await new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.9));
     cv.width = cv.height = 0; // libere la memoire du canvas

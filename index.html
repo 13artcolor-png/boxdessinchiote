@@ -57,10 +57,33 @@
 
     <!-- Reglages (sauvegarde automatique) -->
     <section id="reglages" class="panneau">
+      <h2>Organisation</h2>
+      <label>Chaque motif est imprime
+        <select id="r-repet">
+          <option value="1">1 fois</option>
+          <option value="2">2 fois</option>
+        </select>
+      </label>
+      <label>Le 2e exemplaire
+        <select id="r-miroir">
+          <option value="0">Identique</option>
+          <option value="1">En miroir (symetrie gauche-droite)</option>
+        </select>
+      </label>
+      <label>Rangement
+        <select id="r-mode">
+          <option value="taille">Par taille de cote (mini / maxi)</option>
+          <option value="nombre">Par nombre de motifs par page</option>
+        </select>
+      </label>
+      <label id="bloc-parpage">Nombre de motifs par page <input type="number" id="r-parpage" step="1" min="1"></label>
+
+      <div id="bloc-tailles">
       <h2>Taille par defaut des motifs</h2>
       <p class="info">Mesuree sur le petit cote du motif.</p>
       <label>Petit cote mini (cm) <input type="number" id="r-min" step="0.5" min="1"></label>
       <label>Petit cote maxi (cm) <input type="number" id="r-max" step="0.5" min="1"></label>
+      </div>
 
       <h2>Page A3</h2>
       <label>Marge autour de la page (mm) <input type="number" id="r-marge" step="1" min="0"></label>
