@@ -201,7 +201,7 @@
     const actifs = motifs.filter((m) => m.actif);
     const nb = actifs.reduce((s, m) => s + exemplairesDe(m).reduce((t, e) => t + e.qte, 0), 0);
     $('infos-biblio').textContent = motifs.length === 0
-      ? 'Aucun motif. Appuyez sur "Ajouter des motifs" (vous pouvez choisir dans Google Drive).'
+      ? 'Aucun motif. Appuyez sur "Ajouter depuis Drive / Fichiers" pour choisir vos images dans Google Drive.'
       : `${motifs.length} motifs, ${actifs.length} utilises, ${nb} exemplaires a imprimer.`;
   }
 
@@ -216,7 +216,12 @@
     return new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.8));
   }
 
-  $('fichiers').addEventListener('change', async (ev) => {
+  // Deux boutons d'import, meme traitement :
+  //  - "fichiers" (accept="image/*") : Android ouvre son selecteur de PHOTOS (galerie seulement)
+  //  - "fichiers-drive" (sans accept) : Android ouvre son explorateur de FICHIERS,
+  //    qui donne acces a Google Drive. Les fichiers qui ne sont pas des images sont ecartes.
+  for (const id of ['fichiers', 'fichiers-drive']) $(id).addEventListener('change', importer);
+  async function importer(ev) {
     const fichiers = [...ev.target.files];
     ev.target.value = '';
     const deja = new Set(motifs.map((m) => `${m.nom}|${m.taille}`));
@@ -244,10 +249,10 @@
         console.error('Import impossible', f.name, e);
       }
     }
-    prog.textContent = `${ajoutes} motifs ajoutes` + (ignores ? `, ${ignores} deja presents` : '') + (erreurs ? `, ${erreurs} illisibles` : '') + '.';
+    prog.textContent = `${ajoutes} motifs ajoutes` + (ignores ? `, ${ignores} deja presents` : '') + (erreurs ? `, ${erreurs} ecartes (pas des images ou illisibles)` : '') + '.';
     rafraichirGrille();
     invaliderMontage();
-  });
+  }
 
   async function toutMettre(actif) {
     for (const m of motifs) { if (m.actif !== actif) { m.actif = actif; await Db.enregistrerMotif(m); } }

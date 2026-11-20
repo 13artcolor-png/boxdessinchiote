@@ -25,7 +25,12 @@
     <section id="bibliotheque" class="panneau actif">
       <div class="barre">
         <label class="bouton principal">
-          Ajouter des motifs
+          Ajouter depuis Drive / Fichiers
+          <!-- Sans "accept" : Android ouvre l'explorateur de fichiers (acces a Google Drive) -->
+          <input type="file" id="fichiers-drive" multiple hidden>
+        </label>
+        <label class="bouton">
+          Ajouter depuis la galerie
           <input type="file" id="fichiers" accept="image/*" multiple hidden>
         </label>
         <button id="tout-utiliser">Tout utiliser</button>
