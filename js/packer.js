@@ -89,9 +89,12 @@
       if (orients.length === 0) unplaced.push(item); // ne rentre pas dans une page A3
       else file.push({ item, orients });
     }
-    // Les grands motifs d'abord : les tailles proches se retrouvent dans les memes rangees
-    const centre = (e) => (e.orients[0].lo + e.orients[0].hi) / 2;
-    file.sort((a, b) => centre(b) - centre(a));
+    // Les grands motifs d'abord : les tailles proches se retrouvent dans les memes rangees.
+    // Sauf si on demande de garder l'ordre recu (mode collage : ordre melange au hasard)
+    if (!opts.garderOrdre) {
+      const centre = (e) => (e.orients[0].lo + e.orients[0].hi) / 2;
+      file.sort((a, b) => centre(b) - centre(a));
+    }
 
     const pages = [];
     while (file.length > 0) {

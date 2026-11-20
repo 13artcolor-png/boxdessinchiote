@@ -73,8 +73,21 @@
         c += `q ${n(l.gray)} G ${n(l.width * PT)} w ${n(l.x1 * PT)} ${n(H - l.y1 * PT)} m ${n(l.x2 * PT)} ${n(H - l.y2 * PT)} l S Q\n`;
       }
       p.images.forEach((img, k) => {
-        // Matrice [w 0 0 h x y] : etire l'image (1x1 unite) au rectangle voulu
-        c += `q ${n(img.w * PT)} 0 0 ${n(img.h * PT)} ${n(img.x * PT)} ${n(H - (img.y + img.h) * PT)} cm /Im${k} Do Q\n`;
+        if (img.angle) {
+          // Image inclinee : 3 matrices enchainees (la derniere ecrite s'applique en premier)
+          //  1. place le centre de l'image au centre voulu de la page
+          //  2. tourne. Le PDF compte les y vers le HAUT : un angle horaire a l'ecran
+          //     devient un angle negatif ici
+          //  3. etire l'image (carre de 1 x 1) a sa taille, centree sur l'origine
+          const a = -img.angle * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+          const cx = (img.x + img.w / 2) * PT, cy = H - (img.y + img.h / 2) * PT;
+          const r6 = (v) => v.toFixed(6); // cos/sin : 6 decimales, sinon erreur visible sur les grands motifs
+          c += `q 1 0 0 1 ${n(cx)} ${n(cy)} cm ${r6(co)} ${r6(si)} ${r6(-si)} ${r6(co)} 0 0 cm ` +
+            `${n(img.w * PT)} 0 0 ${n(img.h * PT)} ${n(-img.w * PT / 2)} ${n(-img.h * PT / 2)} cm /Im${k} Do Q\n`;
+        } else {
+          // Matrice [w 0 0 h x y] : etire l'image (1x1 unite) au rectangle voulu
+          c += `q ${n(img.w * PT)} 0 0 ${n(img.h * PT)} ${n(img.x * PT)} ${n(H - (img.y + img.h) * PT)} cm /Im${k} Do Q\n`;
+        }
       });
       for (const t of p.texts || []) {
         c += `BT /F1 ${n(t.size)} Tf ${n(t.x * PT)} ${n(H - t.y * PT)} Td (${echapper(t.str)}) Tj ET\n`;
@@ -97,7 +110,27 @@
     return morceaux;
   }
 
-  const api = { construirePdf };
+  /*
+   * Regroupe les pages en parties dont le poids estime reste sous "limite" (octets).
+   * Pourquoi : Chrome refuse de partager plus de 50 Mo d'un coup ("Permission denied").
+   * Poids d'une page ~ somme de ses JPEG (inseres tels quels) + une marge pour le reste.
+   * Retour : [{ pages, poids, debut, fin }] avec debut/fin = numeros de page (1 = premiere).
+   */
+  function decouperEnParties(pagesPdf, limite) {
+    const groupes = [];
+    let cour = null;
+    pagesPdf.forEach((p, i) => {
+      const poids = p.images.reduce((s, im) => s + im.jpeg.length + 500, 0) + 20000;
+      if (!cour || cour.poids + poids > limite) {
+        cour = { pages: [], poids: 0, debut: i + 1, fin: i + 1 };
+        groupes.push(cour);
+      }
+      cour.pages.push(p); cour.poids += poids; cour.fin = i + 1;
+    });
+    return groupes;
+  }
+
+  const api = { construirePdf, decouperEnParties };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PdfWriter = api;
 })(this);

@@ -48,10 +48,8 @@
       <p id="resume" class="info"></p>
       <div id="alertes"></div>
       <div id="progression-pdf" class="progression" hidden></div>
-      <div id="sortie-pdf" class="barre" hidden>
-        <button id="partager" class="principal">Imprimer / Partager</button>
-        <a id="telecharger" class="bouton" download="montage-A3.pdf">Telecharger le PDF</a>
-      </div>
+      <!-- Rempli par app.js : une ligne Partager / Telecharger par partie du PDF -->
+      <div id="sortie-pdf" hidden></div>
       <div id="apercus" class="apercus"></div>
     </section>
 
@@ -74,9 +72,17 @@
         <select id="r-mode">
           <option value="taille">Par taille de cote (mini / maxi)</option>
           <option value="nombre">Par nombre de motifs par page</option>
+          <option value="collage">Collage (motifs inclines qui se chevauchent)</option>
         </select>
       </label>
       <label id="bloc-parpage">Nombre de motifs par page <input type="number" id="r-parpage" step="1" min="1"></label>
+      <div id="bloc-collage">
+        <p class="info">Affiche finale : la page est entierement couverte, les motifs debordent et sont coupes par le bord de la feuille. Chaque calcul donne un collage different.</p>
+        <label>Inclinaison maxi (degres, a gauche ou a droite) <input type="number" id="r-angle" step="1" min="0" max="45"></label>
+        <label>Chevauchement maxi souhaite (%) <input type="number" id="r-chev" step="1" min="0" max="90"></label>
+        <label class="case"><input type="checkbox" id="r-limiter"> Reduire l'inclinaison pour respecter ce chevauchement</label>
+        <label>Desordre des tailles et positions (%, 0 = sage, 100 = anarchique) <input type="number" id="r-desordre" step="10" min="0" max="100"></label>
+      </div>
 
       <div id="bloc-tailles">
       <h2>Taille par defaut des motifs</h2>
@@ -85,11 +91,37 @@
       <label>Petit cote maxi (cm) <input type="number" id="r-max" step="0.5" min="1"></label>
       </div>
 
+      <h2>Couleurs a l'impression</h2>
+      <p class="info">Sur papier ordinaire (80 g), l'encre s'etale dans les fibres : les tons moyens et les ombres sortent plus fonces qu'a l'ecran. Le reglage le plus efficace est "Eclaircir les tons moyens" : il ne touche ni au blanc ni au noir. L'apercu montre le resultat.</p>
+      <label>Eclaircir les tons moyens : <span id="v-tons"></span>
+        <input type="range" id="r-tons" min="-100" max="100" step="5"></label>
+      <label>Luminosite : <span id="v-lum"></span>
+        <input type="range" id="r-lum" min="-50" max="50" step="5"></label>
+      <label>Contraste : <span id="v-con"></span>
+        <input type="range" id="r-con" min="-50" max="50" step="5"></label>
+      <label>Saturation (intensite des couleurs) : <span id="v-sat"></span>
+        <input type="range" id="r-sat" min="-100" max="100" step="5"></label>
+      <div class="barre">
+        <button id="preset-80g">Papier 80 g (point de depart)</button>
+        <button id="preset-zero">Remettre a zero</button>
+      </div>
+      <h3>Planche d'essai</h3>
+      <p class="info">Une page A3 avec 3 de vos motifs (un sombre, un moyen, un clair) et une echelle de gris, imprimes avec 6 reglages differents (lignes A a F). Imprimez-la sur votre papier, puis appliquez la lettre de la meilleure ligne.</p>
+      <div class="barre"><button id="planche-creer">Creer la planche d'essai</button></div>
+      <p id="planche-etat" class="info"></p>
+      <div id="planche-sortie" class="barre" hidden>
+        <button id="planche-partager" class="principal">Imprimer / Partager</button>
+        <a id="planche-telecharger" class="bouton" download="planche-essai-couleurs.pdf">Telecharger le PDF</a>
+      </div>
+      <div id="planche-appliquer" class="barre"></div>
+
       <h2>Page A3</h2>
+      <div id="bloc-decoupe">
       <label>Marge autour de la page (mm) <input type="number" id="r-marge" step="1" min="0"></label>
       <label>Espace entre les motifs (mm) <input type="number" id="r-ecart" step="1" min="0"></label>
       <label class="case"><input type="checkbox" id="r-rotation"> Autoriser la rotation (90 degres)</label>
       <label class="case"><input type="checkbox" id="r-traits"> Imprimer les traits de coupe</label>
+      </div>
       <label>Qualite d'impression (points par pouce)
         <select id="r-dpi">
           <option value="150">150 - fichier leger</option>
@@ -102,6 +134,9 @@
   </main>
 
   <script src="js/packer.js"></script>
+  <script src="js/collage.js"></script>
+  <script src="js/couleurs.js"></script>
+  <script src="js/planche.js"></script>
   <script src="js/decor.js"></script>
   <script src="js/pdfwriter.js"></script>
   <script src="js/db.js"></script>

@@ -59,6 +59,7 @@ button:disabled { opacity: 0.45; }
 .danger { color: var(--danger); border-color: var(--danger); }
 .barre { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 .barre.bas { margin-top: 24px; }
+.titre-partie { align-self: center; font-weight: 600; }
 .info { color: var(--discret); margin: 8px 0; }
 .progression { padding: 12px; background: var(--carte); border-radius: 10px; margin: 8px 0; }
 

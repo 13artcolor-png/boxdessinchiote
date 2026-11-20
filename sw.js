@@ -5,7 +5,7 @@
 const VERSION = 'bdc-v3';
 const FICHIERS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
-  'js/packer.js', 'js/decor.js', 'js/pdfwriter.js', 'js/db.js', 'js/app.js',
+  'js/packer.js', 'js/collage.js', 'js/couleurs.js', 'js/planche.js','js/decor.js', 'js/pdfwriter.js', 'js/db.js', 'js/app.js',
   'icons/icon-192.png', 'icons/icon-512.png',
 ];
 
